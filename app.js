@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
+const ejsMate = require('ejs-mate');
 const path = require('path');
 const app = express();
 const campGround = require('./models/campGround');
@@ -13,6 +14,9 @@ app.set('views', path.join(__dirname,'views'));
 
 //setting urlParsing to see the request body
 app.use(express.urlencoded({extended: true}));
+
+//setting engine for ejs as ejs-mate
+app.engine('ejs', ejsMate);
 
 //setting methodOverride string 
 app.use(methodOverride('_method'));
