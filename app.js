@@ -2,21 +2,27 @@ const express = require('express');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
-const {campgroundSchema} = require('./validationSchemas');
+const {
+    campgroundSchema,
+    reviewSchema
+} = require('./validationSchemas');
 const ExpressError = require('./Utils/ExpressError');
 const catchAsync = require('./Utils/AsyncWrapper');
 const path = require('path');
 const app = express();
 const campGround = require('./models/campGround');
+const Review = require('./models/review');
 
 //Setting view engine to ejs files
 app.set('view engine', 'ejs');
 
 //setting pathname for views so it is access from any folder
-app.set('views', path.join(__dirname,'views'));
+app.set('views', path.join(__dirname, 'views'));
 
 //setting urlParsing to see the request body
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({
+    extended: true
+}));
 
 //setting engine for ejs as ejs-mate
 app.engine('ejs', ejsMate);
@@ -40,9 +46,21 @@ db.once("open", () => {
 
 // form validation Middleware
 const campGroundValidation = (req, res, next) => {
-  
-    const {error} = campgroundSchema.validate(req.body);
-    if(error) {
+
+    const {
+        error
+    } = campgroundSchema.validate(req.body);
+    if (error) {
+        const msg = error.details.map(el => el.message).join(',');
+        throw new ExpressError(msg, 400);
+    } else {
+        next();
+    }
+};
+
+const reviewValidation = (req, res, next) => {
+    const { error } = reviewSchema.validate(req.body);
+    if (error) {
         const msg = error.details.map(el => el.message).join(',');
         throw new ExpressError(msg, 400);
     } else {
@@ -51,9 +69,11 @@ const campGroundValidation = (req, res, next) => {
 };
 
 //routing to campgrounds view page CRUD: Read
-app.get('/campgrounds', catchAsync(async (req, res) => { 
+app.get('/campgrounds', catchAsync(async (req, res) => {
     const campgrounds = await campGround.find({});
-    res.render('campgrounds/index', {campgrounds});
+    res.render('campgrounds/index', {
+        campgrounds
+    });
 }));
 
 //routing to campgorund create page CRUD: Create
@@ -63,35 +83,67 @@ app.get('/campgrounds/new', (req, res) => {
 
 //routing the post request from form 
 app.post('/campgrounds', campGroundValidation, catchAsync(async (req, res, next) => {
-        // if(!req.body.campground) throw new ExpressError('Invalid campground Data', 400);
-       
-        const campground = new campGround(req.body.campground);
-        await campground.save();
-        res.redirect(`/campgrounds/${campground._id}`);
+    // if(!req.body.campground) throw new ExpressError('Invalid campground Data', 400);
+
+    const campground = new campGround(req.body.campground);
+    await campground.save();
+    res.redirect(`/campgrounds/${campground._id}`);
 }));
 
 //routing to campground details page CRUD: Read
-app.get('/campgrounds/:id', catchAsync(async (req, res) => { 
-    const campground = await campGround.findById(req.params.id);
-    res.render('campgrounds/show', {campground});
+app.get('/campgrounds/:id', catchAsync(async (req, res) => {
+    const campground = await campGround.findById(req.params.id).populate('reviews');
+    res.render('campgrounds/show', {
+        campground
+    });
 }));
 
 //routing to edit campground details CRUD: Update
 app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
     const campground = await campGround.findById(req.params.id);
-    res.render('campgrounds/edit', {campground});
+    res.render('campgrounds/edit', {
+        campground
+    });
 }));
 
 //routing for put request on update
-app.put('/campgrounds/:id',campGroundValidation, catchAsync(async (req, res) => {
-    const { id } = req.params;
-    const campground = await campGround.findByIdAndUpdate(id, { ...req.body.campground });
+app.put('/campgrounds/:id', campGroundValidation, catchAsync(async (req, res) => {
+    const {
+        id
+    } = req.params;
+    const campground = await campGround.findByIdAndUpdate(id, {
+        ...req.body.campground
+    });
     res.redirect(`/campgrounds/${campground._id}`);
+}));
+
+
+
+//routing for review 
+app.post('/campgrounds/:id/reviews', reviewValidation, catchAsync(async (req, res) => {
+    const campground = await campGround.findById(req.params.id);
+    console.log(req.body.review);
+    const review = new Review(req.body.review);
+    campground.reviews.push(review);
+    await review.save();
+    await campground.save();
+
+    res.redirect(`/campgrounds/${campground._id}`);
+}));
+
+//routing to delete Review 
+app.delete('/campgrounds/:id/reviews/:reviewId', catchAsync(async (req, res) => {
+    const { id, reviewId } = req.params;
+    await campGround.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+    await Review.findByIdAndDelete(reviewId);
+    res.redirect(`/campgrounds/${id}`);
 }));
 
 //routing for delete request CRUD: Delete
 app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
-    const {id} = req.params;
+    const {
+        id
+    } = req.params;
     await campGround.findByIdAndDelete(id);
     res.redirect('/campgrounds');
 }));
@@ -103,10 +155,14 @@ app.all('*', (req, res, next) => {
 
 //Error Handling 
 app.use((err, req, res, next) => {
-    const {statusCode = 500 } = err;
-    if(!err.message) err.message = 'Somthing is wrong';
-    res.status(statusCode).render('error', {err});
-    
+    const {
+        statusCode = 500
+    } = err;
+    if (!err.message) err.message = 'Somthing is wrong';
+    res.status(statusCode).render('error', {
+        err
+    });
+
 });
 
 //creating the server on PORT 3000
