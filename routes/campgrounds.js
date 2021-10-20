@@ -1,26 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const ExpressError = require('../Utils/ExpressError');
+
 const catchAsync = require('../Utils/AsyncWrapper');
 const campGround = require('../models/campGround');
-const {
-    campgroundSchema
-} = require('../validationSchemas');
-const { isLoggedIn } = require('../middleware');
-
-// form validation Middleware
-const campGroundValidation = (req, res, next) => {
-
-    const {
-        error
-    } = campgroundSchema.validate(req.body);
-    if (error) {
-        const msg = error.details.map(el => el.message).join(',');
-        throw new ExpressError(msg, 400);
-    } else {
-        next();
-    }
-};
+const { isLoggedIn, isAuthor, campGroundValidation } = require('../middleware');
 
 
 //routing to campgrounds view page CRUD: Read
@@ -40,6 +23,7 @@ router.get('/new', isLoggedIn, (req, res) => {
 router.post('/', isLoggedIn, campGroundValidation, catchAsync(async (req, res, next) => {
     // if(!req.body.campground) throw new ExpressError('Invalid campground Data', 400);
     const campground = new campGround(req.body.campground);
+    campground.author = req.user._id;
     await campground.save();
     req.flash('success', 'Successfully made a new campgrounds');
     res.redirect(`/campgrounds/${campground._id}`);
@@ -48,7 +32,7 @@ router.post('/', isLoggedIn, campGroundValidation, catchAsync(async (req, res, n
 
 //routing to campground details page CRUD: Read
 router.get('/:id', catchAsync(async (req, res) => {
-    const campground = await campGround.findById(req.params.id).populate('reviews');
+    const campground = await campGround.findById(req.params.id).populate('reviews').populate('author');
     if (!campground) {
         req.flash('error', 'cannot find the campground');
         return res.redirect('/campgrounds');
@@ -60,23 +44,20 @@ router.get('/:id', catchAsync(async (req, res) => {
 
 
 //routing to edit campground details CRUD: Update
-router.get('/:id/edit', isLoggedIn, catchAsync(async (req, res) => {
+router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(async (req, res) => {
     const campground = await campGround.findById(req.params.id);
     if (!campground) {
         req.flash('error', 'cannot find the campground');
         return res.render('/campgrounds');
     }
     req.flash('success', 'Successfully updated the campgrounds');
-    res.render('campgrounds/edit', {
-        campground
-    });
+    res.render('campgrounds/edit', { campground });
 }));
 
 //routing for put request on update
-router.put('/:id', isLoggedIn, campGroundValidation, catchAsync(async (req, res) => {
-    const {
-        id
-    } = req.params;
+router.put('/:id', isLoggedIn, isAuthor, campGroundValidation, catchAsync(async (req, res) => {
+    const { id } = req.params;
+
     const campground = await campGround.findByIdAndUpdate(id, {
         ...req.body.campground
     });
@@ -84,7 +65,7 @@ router.put('/:id', isLoggedIn, campGroundValidation, catchAsync(async (req, res)
 }));
 
 //routing for delete request CRUD: Delete
-router.delete('/:id', isLoggedIn, catchAsync(async (req, res) => {
+router.delete('/:id', isLoggedIn, isAuthor, catchAsync(async (req, res) => {
     const {
         id
     } = req.params;
