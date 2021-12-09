@@ -9,8 +9,10 @@
             </div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item text-muted"><%= campground.location %></li>
+              <li class="list-group-item">Submitted by: <%= campground.author.username %></li>
               <li class="list-group-item">$ <%= campground.price %>/Night</li>
             </ul>
+            <% if(CurrentUser && campground.author.equals(CurrentUser._id)) { %> 
             <div class="card-body">
               <a class="btn btn-info" href="/campgrounds/<%= campground._id %>/edit" class="card-link">Edit</a>
 
@@ -18,10 +20,12 @@
                 <button class="btn btn-danger">Delete</button>
             </form>  
             </div>
+            <% } %> 
         </div>
         
     </div>
     <div class="col-6">
+      <% if(CurrentUser) {%> 
       <h2>Leave a Review</h2>
       <form action="/campgrounds/<%= campground._id %>/reviews " method="post" class="mb-3 validated-form" novalidate>
         <div class="mb-3">
@@ -36,7 +40,8 @@
         </div>
         </div>
         <button class="btn btn-success">Submit Review</button>
-      </form>    
+      </form>  
+      <% } %>   
       <% for (let review of campground.reviews) {%>  
         <div class="mb-3 card">
           <div class="card-body">
