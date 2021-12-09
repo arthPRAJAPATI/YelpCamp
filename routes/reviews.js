@@ -3,12 +3,13 @@ const router = express.Router({ mergeParams: true });
 const catchAsync = require('../Utils/AsyncWrapper');
 const campGround = require('../models/campGround');
 const Review = require('../models/review');
-const { reviewValidation } = require('../middleware');
+const { reviewValidation, isLoggedIn } = require('../middleware');
 
 //routing for review 
-router.post('/', reviewValidation, catchAsync(async (req, res) => {
+router.post('/', isLoggedIn, reviewValidation, catchAsync(async (req, res) => {
     const campground = await campGround.findById(req.params.id);
     const review = new Review(req.body.review);
+    review.author = req.user._id;
     campground.reviews.push(review);
     await review.save();
     await campground.save();
