@@ -3,6 +3,7 @@ const {
     campgroundSchema
 } = require('./validationSchemas');
 const campGround = require('./models/campGround');
+const Review = require('./models/review');
 const {
     reviewSchema
 } = require('./validationSchemas');
@@ -35,6 +36,16 @@ module.exports.isAuthor = async (req, res, next) => {
     const { id } = req.params;
     const camp = await campGround.findById(id);
     if (!camp.author.equals(req.user._id)) {
+        req.flash('error', 'you are not allowed to edit this campground');
+        return res.redirect(`/campgrounds/${id}`);
+    }
+    next();
+};
+
+module.exports.isReviewAuthor = async (req, res, next) => {
+    const { reviewId } = req.params;
+    const review = await Review.findById(reviewId);
+    if (!review.author.equals(req.user._id)) {
         req.flash('error', 'you are not allowed to edit this campground');
         return res.redirect(`/campgrounds/${id}`);
     }
