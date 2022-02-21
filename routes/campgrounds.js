@@ -6,7 +6,7 @@ const campGround = require('../models/campGround');
 const { isLoggedIn, isAuthor, campGroundValidation } = require('../middleware');
 const multer = require('multer');
 const {storage} = require('../cloudinary');
-const upload = multer(storage);
+const upload = multer({storage});
 
 
 //routing to campgrounds view page CRUD: Read
