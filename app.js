@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const ExpressError = require('./Utils/ExpressError');
+const mongoSanitize = require('express-mongo-sanitize');
 const session = require('express-session');
 const flash = require('connect-flash');
 const ejsMate = require('ejs-mate');
@@ -37,6 +38,10 @@ app.use(methodOverride('_method'));
 
 //setting express to serve public directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(mongoSanitize({
+    replaceWith: '_'
+}))
 
 //logic to connect to database
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {
@@ -84,6 +89,10 @@ app.use((req, res, next) => {
 app.use('/', userRoutes);
 app.use('/campgrounds', campgroundRoutes);
 app.use('/campgrounds/:id/reviews', reviewRoutes);
+
+app.get('/', (req, res) => {
+    res.render('home')
+});
 
 //Error Handling
 app.all('*', (req, res, next) => {

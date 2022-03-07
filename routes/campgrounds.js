@@ -13,7 +13,7 @@ const upload = multer({storage});
 router.route('/')
   .get(catchAsync(campgrounds.index))
   //routing the post request from form 
-  .post(isLoggedIn, upload.array('image'), /*campGroundValidation,*/ catchAsync(campgrounds.createNewCampground));
+  .post(isLoggedIn, upload.array('image'), campGroundValidation, catchAsync(campgrounds.createNewCampground));
 
 //routing to campgorund create page CRUD: Create
 router.get('/new', isLoggedIn, campgrounds.renderNewForm);
@@ -22,7 +22,7 @@ router.get('/new', isLoggedIn, campgrounds.renderNewForm);
 router.route('/:id')
 .get( catchAsync(campgrounds.showCampground))
 //routing for put request on update
-.put(isLoggedIn, isAuthor, upload.array('image'), /*campGroundValidation,*/ catchAsync(campgrounds.updateCampground))
+.put(isLoggedIn, isAuthor, upload.array('image'), campGroundValidation, catchAsync(campgrounds.updateCampground))
 //routing for delete request CRUD: Delete
 .delete(isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground));
 
